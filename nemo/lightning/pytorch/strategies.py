@@ -33,7 +33,7 @@ from typing_extensions import override
 
 from nemo.lightning import _strategy_lib, io
 from nemo.lightning.io.pl import MegatronCheckpointIO
-from nemo.lightning.megatron_parallel import CallbackConnector, MegatronParallel, _ModuleStepFunction
+from nemo.lightning.megatron_parallel import CallbackConnector, MegatronParallel, _ModuleStepFunction, reduce_loss_across_pipeline
 from nemo.lightning.pytorch.callbacks import MegatronProgressBar, ModelTransform
 from nemo.utils.callbacks.dist_ckpt_io import AsyncFinalizableCheckpointIO, AsyncFinalizerCallback
 
@@ -434,7 +434,7 @@ class MegatronStrategy(DDPStrategy, io.IOMixin):
             for opt in self.optimizers:
                 opt.zero_grad()
 
-            out = self.model(dataloader_iter, forward_only=False, *args, **kwargs)
+            loss = self.model(dataloader_iter, forward_only=False, *args, **kwargs)
 
             self.lightning_module.log(
                 'global_step',
@@ -468,21 +468,10 @@ class MegatronStrategy(DDPStrategy, io.IOMixin):
                 )
 
             if self.log_train_loss:
-                from megatron.core import parallel_state
+                loss = reduce_loss_across_pipeline(loss)
+                self.lightning_module.log('reduced_train_loss', loss, prog_bar=True, rank_zero_only=True, batch_size=1)
 
-                from nemo.collections.nlp.parts.utils_funcs import get_last_rank
-
-                # When using pipeline parallelism, loss is calculated only in the last pipeline stage and
-                # it should be casted to other pipeline stages for logging.
-                # we can avoid this broadcast by updating the PTL log function to accept specific ranks
-                if parallel_state.get_pipeline_model_parallel_world_size() > 1:
-                    if torch.distributed.get_rank() == get_last_rank():
-                        torch.distributed.send(out, 0)
-                    elif torch.distributed.get_rank() == 0:
-                        torch.distributed.recv(out, get_last_rank())
-                self.lightning_module.log('reduced_train_loss', out, prog_bar=True, rank_zero_only=True, batch_size=1)
-
-            return out
+            return loss
 
     @override
     def validation_step(self, dataloader_iter, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
