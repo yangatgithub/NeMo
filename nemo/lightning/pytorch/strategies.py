@@ -33,7 +33,13 @@ from typing_extensions import override
 
 from nemo.lightning import _strategy_lib, io
 from nemo.lightning.io.pl import MegatronCheckpointIO
-from nemo.lightning.megatron_parallel import CallbackConnector, MegatronParallel, _ModuleStepFunction, reduce_loss_across_pipeline
+from nemo.lightning.megatron_parallel import (
+    CallbackConnector,
+    MegatronParallel,
+    _ModuleStepFunction,
+    aggregate_moe_loss_stats,
+    reduce_loss_across_pipeline,
+)
 from nemo.lightning.pytorch.callbacks import MegatronProgressBar, ModelTransform
 from nemo.utils.callbacks.dist_ckpt_io import AsyncFinalizableCheckpointIO, AsyncFinalizerCallback
 
@@ -470,6 +476,10 @@ class MegatronStrategy(DDPStrategy, io.IOMixin):
             if self.log_train_loss:
                 loss = reduce_loss_across_pipeline(loss)
                 self.lightning_module.log('reduced_train_loss', loss, prog_bar=True, rank_zero_only=True, batch_size=1)
+                # Log any MoE losses.
+                # TODO(@akoumparouli): loss_scale depends on the GBS.
+                for loss_name, loss_value in aggregate_moe_loss_stats(loss_scale=1.0).items():
+                    self.lightning_module.log(loss_name, loss_value, prog_bar=True, rank_zero_only=True, batch_size=1)
 
             return loss
 
