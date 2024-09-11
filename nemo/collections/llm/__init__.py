@@ -18,7 +18,6 @@ from nemo.utils.import_utils import safe_import
 safe_import("transformer_engine")
 
 from nemo.collections.llm import peft, tokenizer
-
 from nemo.collections.llm.gpt.data import (
     DollyDataModule,
     FineTuningDataModule,
@@ -103,7 +102,6 @@ from nemo.collections.llm.gpt.model import (
     gpt_forward_step,
 )
 
-
 __all__ = [
     "MockDataModule",
     "GPTModel",
@@ -184,7 +182,8 @@ from nemo.utils import logging
 
 try:
     import nemo_run as run
-    from nemo.collections.llm.api import export_ckpt, finetune, import_ckpt, pretrain, train, validate
+
+    from nemo.collections.llm.api import export_ckpt, finetune, generate, import_ckpt, pretrain, train, validate
     from nemo.collections.llm.recipes import *  # noqa
 
     __all__.extend(
@@ -195,6 +194,7 @@ try:
             "pretrain",
             "validate",
             "finetune",
+            "generate",
         ]
     )
 except ImportError as error:
