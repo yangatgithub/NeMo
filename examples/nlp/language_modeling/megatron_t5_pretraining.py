@@ -34,6 +34,7 @@ def main(cfg) -> None:
 
     # DEBUGGING
     import torch
+
     print("model (before): ")
     print(model)
     for name, param in model.named_parameters():
@@ -47,7 +48,7 @@ def main(cfg) -> None:
     trainer.fit(model)
 
     # DEBUGGING
-    if torch.distributed.get_rank()==0:
+    if torch.distributed.get_rank() == 0:
         print("model (after): ")
         print(model)
         for name, param in model.named_parameters():

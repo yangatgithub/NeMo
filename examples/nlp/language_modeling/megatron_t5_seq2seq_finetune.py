@@ -228,7 +228,8 @@ def main(cfg) -> None:
 
     # DEBUGGING
     import torch
-    if torch.distributed.get_rank()==0:
+
+    if torch.distributed.get_rank() == 0:
         print("model: ")
         print(model)
         for name, param in model.named_parameters():

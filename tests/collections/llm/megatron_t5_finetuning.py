@@ -14,8 +14,8 @@ from nemo.collections.llm.t5.data import SquadDataModule
 from nemo.collections.nlp.modules.common.tokenizer_utils import get_nmt_tokenizer
 from nemo.lightning import NeMoLogger
 from nemo.lightning.pytorch.callbacks import ModelCheckpoint
-from nemo.lightning.pytorch.optim.megatron import MegatronOptimizerModule
 from nemo.lightning.pytorch.optim.lr_scheduler import WarmupAnnealingScheduler
+from nemo.lightning.pytorch.optim.megatron import MegatronOptimizerModule
 
 
 def get_args():
@@ -43,9 +43,9 @@ if __name__ == '__main__':
     )
 
     data = SquadDataModule(
-        seq_length=512, 
-        seq_length_dec=128, 
-        micro_batch_size=16, 
+        seq_length=512,
+        seq_length_dec=128,
+        micro_batch_size=16,
         global_batch_size=128,
         tokenizer=tokenizer,
         num_workers=4,
@@ -98,7 +98,7 @@ if __name__ == '__main__':
     )
     opt = MegatronOptimizerModule(
         config=opt_config,
-        )
+    )
 
     trainer = nl.Trainer(
         devices=args.devices,

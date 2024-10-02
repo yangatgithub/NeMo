@@ -11,12 +11,11 @@ from megatron.core.transformer.transformer_config import TransformerConfig
 from torch import nn
 
 from nemo.collections.llm import fn
+from nemo.collections.nlp.modules.common.megatron.token_level_encoder_decoder import AttnMaskType
+from nemo.collections.nlp.modules.common.megatron.utils import build_attention_mask_3d
 from nemo.lightning import get_vocab_size, io
 from nemo.lightning.megatron_parallel import MaskedTokenLossReduction
 from nemo.lightning.pytorch.optim import MegatronOptimizerModule, OptimizerModule
-
-from nemo.collections.nlp.modules.common.megatron.token_level_encoder_decoder import AttnMaskType
-from nemo.collections.nlp.modules.common.megatron.utils import build_attention_mask_3d
 
 HAVE_TE = True
 try:
@@ -42,22 +41,16 @@ def t5_data_step(dataloader_iter) -> Dict[str, torch.Tensor]:
     else:
         _batch = batch
 
-    # if Dataset object is NeMo 1.0's T5SFTDataset (e.g. when finetuning with SQUAD) 
+    # if Dataset object is NeMo 1.0's T5SFTDataset (e.g. when finetuning with SQUAD)
     if 'enc_dec_mask' not in _batch:
-        encoder_attn_mask_3d = build_attention_mask_3d(
-            _batch['enc_mask'], _batch['enc_mask'], AttnMaskType.padding
-        )
-        decoder_attn_mask_3d = build_attention_mask_3d(
-            _batch['dec_mask'], _batch['dec_mask'], AttnMaskType.causal
-        )
-        enc_dec_attn_mask_3d = build_attention_mask_3d(
-            _batch['dec_mask'], _batch['enc_mask'], AttnMaskType.padding
-        )
+        encoder_attn_mask_3d = build_attention_mask_3d(_batch['enc_mask'], _batch['enc_mask'], AttnMaskType.padding)
+        decoder_attn_mask_3d = build_attention_mask_3d(_batch['dec_mask'], _batch['dec_mask'], AttnMaskType.causal)
+        enc_dec_attn_mask_3d = build_attention_mask_3d(_batch['dec_mask'], _batch['enc_mask'], AttnMaskType.padding)
         _batch['enc_mask'] = encoder_attn_mask_3d
         _batch['dec_mask'] = decoder_attn_mask_3d
         _batch['enc_dec_mask'] = enc_dec_attn_mask_3d
 
-    # if Dataset object is Mcore T5 dataset (e.g. pretraining) 
+    # if Dataset object is Mcore T5 dataset (e.g. pretraining)
     else:
         # convert attention mask values from int to True/False
         _batch['enc_mask'] = _batch['enc_mask'] < 0.5
@@ -192,7 +185,7 @@ class T5Config(TransformerConfig, io.IOMixin):
         print(model)
         print("encoder_config: ", encoder_config)
         torch.set_printoptions(precision=20)
-        if torch.distributed.get_rank()==0:
+        if torch.distributed.get_rank() == 0:
             for name, param in model.named_parameters():
                 print("{}: {} - {}".format(name, param.shape, torch.norm(param)))
                 if "embedding.position_embeddings.weight" in name:
@@ -202,7 +195,7 @@ class T5Config(TransformerConfig, io.IOMixin):
                     print(param.shape)
                     print(param.mean())
                     print(param.std())
-        print(stop_here)        
+        print(stop_here)
 
         return model
 
