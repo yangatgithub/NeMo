@@ -31,25 +31,25 @@ class MemoryProfileCallback(Callback, io.IOMixin):
     More info about the profiles can be found [here](https://pytorch.org/blog/understanding-gpu-memory-1/).
 
     Args:
-        dir (Optional[str]): Directory to store the memory profile dump
+        prof_dir (Optional[str]): Directory to store the memory profile dump
         warn_cycles (Optional[bool]): Whether to enable [reference cycle detection](https://pytorch.org/blog/understanding-gpu-memory-2/)
         rank (Optional[list[int]]): List of ranks to collect snapshot on, defaults to all if list is empty
         interval (int): How frequently (in number of batches) to dump memory profile. Default to 0 (off).
     Example:
-        >>> callback = MemoryProfileCallback(dir="/mem_profile", ranks=[0])
+        >>> callback = MemoryProfileCallback(prof_dir="/mem_profile", ranks=[0])
         >>> trainer = Trainer(callbacks=[callback])
     """
 
-    def __init__(self, dir: str = "/mem_profile", warn_cycles=True, ranks=[], interval: int = 0):
+    def __init__(self, prof_dir: str = "/mem_profile", warn_cycles=True, ranks=[], interval: int = 0):
 
-        self.dir = dir
+        self.prof_dir = prof_dir
         self.ranks = ranks
         assert isinstance(self.interval, int), "Expected interval to be an integer"
         self.interval = interval
         self.step = 0
 
-        os.makedirs(self.dir, exist_ok=True)
-        logging.info(f"Torch memory profiles will be written to: {self.dir}")
+        os.makedirs(self.prof_dir, exist_ok=True)
+        logging.info(f"Torch memory profiles will be written to: {self.prof_dir}")
 
         if warn_cycles:
             logging.info("Enabling reference cycle detector")
@@ -80,7 +80,7 @@ class MemoryProfileCallback(Callback, io.IOMixin):
         if rank is None:
             rank = get_rank()
         if _snapshot_path is None:
-            _snapshot_path = f"{self.dir}/memory_snapshot-rank{rank}.pickle"
+            _snapshot_path = f"{self.prof_dir}/memory_snapshot-rank{rank}.pickle"
         logging.info(f"Writing memory profile snapshot to {_snapshot_path}")
         torch.cuda.memory._dump_snapshot(f"{_snapshot_path}")
         torch.cuda.memory._record_memory_history(enabled=None)
@@ -92,7 +92,7 @@ class MemoryProfileCallback(Callback, io.IOMixin):
             return
         if self.step % self.interval == 0:
             if self.enable_on_rank():
-                self._dump_memory_snapshot(f"{self.dir}/memory_snapshot-rank{rank}_iter{self.step}.pickle")
+                self._dump_memory_snapshot(f"{self.prof_dir}/memory_snapshot-rank{rank}_iter{self.step}.pickle")
         self.step += 1
 
     def on_train_end(self, trainer, pl_module) -> None:
