@@ -6,14 +6,14 @@ from nemo.collections.llm.gpt.data.mock import MockDataModule
 from nemo.collections.llm.gpt.data.squad import SquadDataModule
 from nemo.collections.llm.gpt.model.mistral import MistralConfig7B, MistralModel
 from nemo.collections.llm.peft.lora import LoRA
-from nemo.collections.llm.recipes import mistral
+from nemo.collections.llm.recipes import mistral_7b
 from nemo.lightning import AutoResume, Trainer
 
 
 class TestMistral:
     @pytest.fixture(scope="class")
     def recipe_module(self):
-        return mistral
+        return mistral_7b
 
     def test_model(self, recipe_module):
         model_config = recipe_module.model()
